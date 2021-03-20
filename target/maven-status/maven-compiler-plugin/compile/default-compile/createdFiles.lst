@@ -1,0 +1,10 @@
+edu/umn/cs/spatialHadoop/OperationsParams$1.class
+edu/umn/cs/spatialHadoop/util/JspSpatialHelper.class
+edu/umn/cs/spatialHadoop/operations/Skyline$2.class
+edu/umn/cs/spatialHadoop/indexing/IndexOutputFormat$1.class
+edu/umn/cs/spatialHadoop/mapred/RandomShapeGenerator$1.class
+edu/umn/cs/spatialHadoop/operations/Sampler$9.class
+edu/umn/cs/spatialHadoop/util/JspSpatialHelper$1.class
+edu/umn/cs/spatialHadoop/visualization/FrequencyMap$1.class
+edu/umn/cs/spatialHadoop/core/GridRecordWriter$2.class
+edu/umn/cs/spatialHadoop/operations/Head.class
