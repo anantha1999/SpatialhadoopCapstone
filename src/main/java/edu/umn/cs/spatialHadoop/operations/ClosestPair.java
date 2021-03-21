@@ -382,8 +382,17 @@ public class ClosestPair {
 
         cuModuleGetFunction(function, module, "gpu");
         
+        
+        
+        int kernelOutput[] = {1};
+        CUdeviceptr deviceOutput = new CUdeviceptr();
+        cuMemAlloc(deviceOutput, Sizeof.INT);
+        cuMemcpyHtoD(deviceOutput, Pointer.to(kernelOutput),
+            Sizeof.INT);
+        
         Pointer kernelParams = Pointer.to(
-        );
+               Pointer.to(deviceOutput)
+            );
         
         System.out.println();
         System.out.println();
@@ -394,9 +403,14 @@ public class ClosestPair {
                 0, null,               // Shared memory size and stream
                 kernelParams, null // Kernel- and extra parameters
         );
+            cuMemcpyDtoH(Pointer.to(kernelOutput), deviceOutput, Sizeof.INT);
+            System.out.println("Output from the kernel : "+String.valueOf(kernelOutput[0]));
             cuCtxSynchronize();
             cuCtxDestroy(cuContext);
+            
     }
+    
+    
   }
   
   /**
@@ -501,6 +515,7 @@ public class ClosestPair {
 
     System.out.println("Adding classpath");
     job.addFileToClassPath(new Path("/user/user/gpu_test.ptx"));
+    System.out.println("Added gpu kernel in test folder to classpath");
     job.addFileToClassPath(new Path("/user/user/jcuda-10.1.0.jar"));
     job.addFileToClassPath(new Path("/user/user/jcuda-natives-10.1.0-linux-x86_64.jar"));
     // Set input and output

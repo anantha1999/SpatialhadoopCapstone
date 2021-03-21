@@ -1,7 +1,7 @@
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/io/TextSerializerHelperTest.java
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/io/HeadTest.java
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/OperationsParamsTest.java
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/visualization/MultilevelPlotTest.java
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/nasa/HDFRecordReaderTest.java
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/TigerShapeTest.java
-/home/shadoop/workspace/spatialhadoop/src/test/java/edu/umn/cs/spatialHadoop/operations/LocalSamplerTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/io/HeadTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/operations/LocalSamplerTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/visualization/MultilevelPlotTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/nasa/HDFRecordReaderTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/OperationsParamsTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/TigerShapeTest.java
+/home/shadoop/Desktop/SpatialhadoopCapstone/src/test/java/edu/umn/cs/spatialHadoop/io/TextSerializerHelperTest.java
