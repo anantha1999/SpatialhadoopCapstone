@@ -167,6 +167,8 @@ public class ClosestPair {
     URL url = ClosestPair.class.getClassLoader().getResource("gpu_test.ptx");
     String ptxFileName = url.getPath();
 
+    //DOING ALL THIS HERE BECAUSE IF DONE INSIDE THE FUNCTION THEN IT KEEPS INITIALISING INPUT OVER AND OVER. INSTEAD INITIALIZING IT ONCE HERE SO THAT WE CAN AVOID EXTRA FOR LOOP
+    //TODO: VARY THE NUMBER OF BLOCKS AND FIND OPTIMUM. AND ALSO SEE WHAT ELSE CAN BE DONE TO CAUSE A SPEED UP BECAUSE CURRENTLY THE WORKING IS SLOW.
     cuInit(0);
     System.out.println("Initialised  cuda device!");
     CUdevice device = new CUdevice();
@@ -201,7 +203,7 @@ public class ClosestPair {
     }
     cuMemcpyHtoD(deviceInput,Pointer.to(hostPointers), points.length* Sizeof.POINTER);
 
-
+    //LIKE I MENTIONED BEFORE INITIALIZING DEVICEINPUT HERE ITSELF AND PASSING IT AS PARAMETER SO THAT WE CAN AVOID INITIALIZING IT OVER AND OVER.
 
       while(blocksExecuted < blocks) {
         System.out.println("calling kernel!");
