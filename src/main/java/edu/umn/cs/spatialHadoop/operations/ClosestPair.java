@@ -125,6 +125,7 @@ public class ClosestPair {
         end = start + threshold;
       start = end;
     }
+    //HERE I AM GETTING THE NUMBER OF WHILE LOOPS THAT WILL BE EXECUTED AND INITIALLY I THOUGHT I COULD USE AS MANY BLOCKS AND HENCE NAMED THE VARIABLE THAT KEEPS COUNT AS BLOCKS. BUT TURNS OUT THE NUMBER OF ITERATIONS WILL BE GREATER THAN THE NUM OF BLOCKS THAT WE CAN ALLOCATE TO A GPU.
 
     int startPoints[] = new int[blocks];
     int endPoints[] = new int[blocks];
@@ -146,6 +147,7 @@ public class ClosestPair {
       ++ind;
     }
 
+    //HERE I AM GETTING THE STARTING VALUES FOR EACH WHILE LOOP (WHICH WILL BE EXECUTED PARALLELY ACCROSS BLOCKS) AND STORING THEM AND THEY WILL BE LATER PASSED TO THE GPU.
     System.out.println("Number of blocks = "+blocks);
 
 //    if(numBlocks <= 30000) {
@@ -207,9 +209,10 @@ public class ClosestPair {
 
       while(blocksExecuted < blocks) {
         System.out.println("calling kernel!");
+        //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
         float cudaOutput[][] = ClosestPairMap.executeKernel(1000, deviceInput, function, Arrays.copyOfRange(startPoints, blocksExecuted, blocksExecuted+1000), Arrays.copyOfRange(endPoints, blocksExecuted, blocksExecuted+1000), Arrays.copyOfRange(distancePoints, blocksExecuted, blocksExecuted+1000));
         ind = 0;
-
+        //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
         for (float[] out : cudaOutput) {
 //          System.out.println("Adding output to the list");
           SubListComputation closestPair = new SubListComputation();
@@ -223,6 +226,25 @@ public class ClosestPair {
         }
         blocksExecuted += 1000;
       }
+
+    System.out.println("calling kernel!");
+      //EXECUTING THE REMAINING NUMBER OF INPU POINTS FINALLY.
+      float cudaOutput[][] = ClosestPairMap.executeKernel(blocks - blocksExecuted, deviceInput, function, Arrays.copyOfRange(startPoints, blocksExecuted, blocks), Arrays.copyOfRange(endPoints, blocksExecuted, blocks), Arrays.copyOfRange(distancePoints, blocksExecuted, blocks));
+    ind = 0;
+    //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
+    for (float[] out : cudaOutput) {
+//          System.out.println("Adding output to the list");
+      SubListComputation closestPair = new SubListComputation();
+      closestPair.start = startPoints[ind];
+      closestPair.end = endPoints[ind];
+      closestPair.p1 = (int) out[0];
+      closestPair.p2 = (int) out[1];
+      closestPair.distance = out[2];
+      sublists.add(closestPair);
+      ++ind;
+    }
+
+    //TODO: THE CODE IS SLOW FOR SOME REASON SO MAY HAVE TO LOOK FOR CHANGES OR TRY CONVERTING THE ENTIRE FUNCTION TO CUDA RATHER THAN PART OF IT. MAYBE THAT WILL ACTUALLY SPEED IT UP.
 //    }
 
 //    while (start < points.length) {
