@@ -12,6 +12,20 @@ extern "C"
 
 __global__ void gpu(float** input, float** output, int* startPoints, int* endPoints){
 	int block = blockIdx.x;
+//	int i1 = blockIdx.y + startPoints[block];
+//	int i2 = blockIdx.z + startPoints[block];
+//	if(i2 > i1){
+//	    if(i1 < endPoints[block] && i2 < endPoints[block]){
+//	        float x_distance = powf(((float)input[i1][0] - (float)input[i2][0]),(float)2);
+//            float y_distance = powf(((float)input[i1][1] - (float)input[i2][1]),(float)2);
+//            float distance = sqrt(x_distance+y_distance);
+//           if(distance < output[block][2]){
+//                output[block][0] = (float)i1;
+//                output[block][1] = (float)i2;
+//                output[block][2] = distance;
+//            }
+//	    }
+//	}
     for(int i1=startPoints[block];i1<endPoints[block];++i1){
         for(int i2=i1+1; i2<endPoints[block];++i2){
             float x_distance = powf(((float)input[i1][0] - (float)input[i2][0]),(float)2);
