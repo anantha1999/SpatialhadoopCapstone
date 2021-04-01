@@ -143,6 +143,7 @@ public class ClosestPair {
       endPoints[ind] = end;
 //      System.out.println("start points - "+startPoints[ind]);
       distancePoints[ind] = (float)points[start].distanceTo(points[start+1]);
+//      System.out.println(startPoints[ind] + " " + endPoints[ind] + " " + distancePoints[ind]);
       start = end;
       ++ind;
     }
@@ -191,11 +192,14 @@ public class ClosestPair {
 
     //--------------
      ind = 0;
+     System.out.println("Transferring input from CPU to GPU");
+    long t1 = System.currentTimeMillis();
     for (Point point : points) {
       float hostWordData[] = new float[2];
 
       hostWordData[0] = (float)point.x;
       hostWordData[1] = (float)point.y;
+      hostPointers[ind] = new CUdeviceptr();
       hostPointers[ind] = new CUdeviceptr();
       cuMemAlloc(hostPointers[ind], 2 * Sizeof.FLOAT);
 
@@ -203,29 +207,33 @@ public class ClosestPair {
               2 * Sizeof.FLOAT);
       ind++;
     }
+    long t2 = System.currentTimeMillis();
+    System.out.println("Time taken by for loop that initializes input device pointers - "+(t2-t1));
+    long t3 = System.currentTimeMillis();
     cuMemcpyHtoD(deviceInput,Pointer.to(hostPointers), points.length* Sizeof.POINTER);
-
+    System.out.println("Time taken for transferring input from CPU to GPU - "+(t3-t2));
     //LIKE I MENTIONED BEFORE INITIALIZING DEVICEINPUT HERE ITSELF AND PASSING IT AS PARAMETER SO THAT WE CAN AVOID INITIALIZING IT OVER AND OVER.
 
-//      while(blocksExecuted < blocks) {
-        System.out.println("calling kernel!");
-        //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
-        float cudaOutput[][] = ClosestPairMap.executeKernel(blocks, deviceInput, function, startPoints, endPoints, distancePoints);
-        ind = 0;
-        //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
-        for (float[] out : cudaOutput) {
+//    while(blocksExecuted < blocks) {
+      System.out.println("calling kernel!");
+      //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
+    float cudaOutput[] = ClosestPairMap.executeKernel(blocks, deviceInput, function, startPoints, endPoints, distancePoints);
+    ind = 0;
+      //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
+      for(int i=0;i<blocks*3;i+=3) {
 //          System.out.println("Adding output to the list");
-          SubListComputation closestPair = new SubListComputation();
-          closestPair.start = startPoints[ind];
-          closestPair.end = endPoints[ind];
-          closestPair.p1 = (int) out[0];
-          closestPair.p2 = (int) out[1];
-          closestPair.distance = out[2];
-          sublists.add(closestPair);
-          ++ind;
-        }
-//        blocksExecuted += 1000;
-//      }
+        SubListComputation closestPair = new SubListComputation();
+        closestPair.start = startPoints[ind];
+        closestPair.end = endPoints[ind];
+//        System.out.println(cudaOutput[i+0]+" "+cudaOutput[i+1] + " "+cudaOutput[i+2]);
+        closestPair.p1 = (int) cudaOutput[i+0];
+        closestPair.p2 = (int) cudaOutput[i+1];
+        closestPair.distance = cudaOutput[i+2];
+        sublists.add(closestPair);
+        ++ind;
+      }
+//      blocksExecuted += 1000;
+//    }
 
 //    System.out.println("calling kernel!");
 //      //EXECUTING THE REMAINING NUMBER OF INPU POINTS FINALLY.
@@ -646,37 +654,46 @@ public class ClosestPair {
       }
     }
 
-    public static float[][] executeKernel(int blocks, CUdeviceptr deviceInput, CUfunction function, int[] startPoints, int[] endPoints, float[] distancePoints) throws URISyntaxException{
+    public static float[] executeKernel(int blocks, CUdeviceptr deviceInput, CUfunction function, int[] startPoints, int[] endPoints, float[] distancePoints) throws URISyntaxException{
 //      Configuration conf = context.getConfiguration();
 //      LOG.info("Using map context to set file system");
 //      conf.set("fs.defaultFS", "hdfs://0.0.0.0:9000");
 
-      float[][] kernelOutput = new float[blocks][3];
+//      float[][] kernelOutput = new float[blocks][3];
       CUdeviceptr deviceOutput = new CUdeviceptr();
-      cuMemAlloc(deviceOutput, blocks*Sizeof.POINTER);
+      cuMemAlloc(deviceOutput, blocks*3*Sizeof.FLOAT);
 
-
-      CUdeviceptr outputPointers[] = new CUdeviceptr[blocks];
-      for(int i=0;i<blocks;++i){
-
-        kernelOutput[i][0] = (float)startPoints[i];
-        kernelOutput[i][1] = (float)(startPoints[i]+1);
-        kernelOutput[i][2] = distancePoints[i];
-//          System.out.println("start points in execute kernel - "+ startPoints[i]);
-        outputPointers[i] = new CUdeviceptr();
-        cuMemAlloc(outputPointers[i], 3 * Sizeof.FLOAT);
-        cuMemcpyHtoD(outputPointers[i], Pointer.to(kernelOutput[i]),
-                3 * Sizeof.FLOAT);
-      }
-      cuMemcpyHtoD(deviceOutput,Pointer.to(outputPointers), blocks * Sizeof.POINTER);
+      float finalOutput[] = new float[blocks*3];
+      cuMemcpyHtoD(deviceOutput, Pointer.to(finalOutput), blocks*3*Sizeof.FLOAT);
+//      CUdeviceptr outputPointers[] = new CUdeviceptr[blocks];
+//      System.out.println("Executing for loop with 'blocks' number of iterations");
+//      long T1 = System.currentTimeMillis();
+//      for(int i=0;i<blocks;++i){
+//
+//        kernelOutput[i][0] = (float)startPoints[i];
+//        kernelOutput[i][1] = (float)(startPoints[i]+1);
+//        kernelOutput[i][2] = distancePoints[i];
+////          System.out.println("start points in execute kernel - "+ startPoints[i]);
+//        outputPointers[i] = new CUdeviceptr();
+//        cuMemAlloc(outputPointers[i], 3 * Sizeof.FLOAT);
+//        cuMemcpyHtoD(outputPointers[i], Pointer.to(kernelOutput[i]),
+//                3 * Sizeof.FLOAT);
+//      }
+//      long T2 = System.currentTimeMillis();
+//      System.out.println("time taken for 'blocks' number of iterations - "+(T2-T1));
+//      cuMemcpyHtoD(deviceOutput,Pointer.to(outputPointers), blocks * Sizeof.POINTER);
       CUdeviceptr deviceStartPoints = new CUdeviceptr();
       cuMemAlloc(deviceStartPoints, blocks*Sizeof.INT);
 
       CUdeviceptr deviceEndPoints = new CUdeviceptr();
       cuMemAlloc(deviceEndPoints, blocks*Sizeof.INT);
 
+      CUdeviceptr deviceDistancePoints = new CUdeviceptr();
+      cuMemAlloc(deviceDistancePoints, blocks*Sizeof.INT);
+
       cuMemcpyHtoD(deviceStartPoints, Pointer.to(startPoints), blocks*Sizeof.INT);
       cuMemcpyHtoD(deviceEndPoints, Pointer.to(endPoints), blocks*Sizeof.INT);
+      cuMemcpyHtoD(deviceDistancePoints, Pointer.to(distancePoints), blocks*Sizeof.FLOAT);
 
         int lock[] = {0};
         CUdeviceptr lockVar = new CUdeviceptr();
@@ -686,11 +703,13 @@ public class ClosestPair {
                 Pointer.to(deviceInput),
                Pointer.to(deviceOutput),
                 Pointer.to(deviceStartPoints),
-                Pointer.to(deviceEndPoints)
+                Pointer.to(deviceEndPoints),
+                Pointer.to(deviceDistancePoints)
             );
 
         System.out.println();
         System.out.println();
+        long t1 = System.currentTimeMillis();
 //        System.out.println("EXECUTING KERNEL FUNCTION...\n\n");
             cuLaunchKernel(function,
                 blocks, 1, 1,      // Grid dimension
@@ -698,12 +717,14 @@ public class ClosestPair {
                 0, null,               // Shared memory size and stream
                 kernelParams, null // Kernel- and extra parameters
         );
-//            cuMemcpyDtoH(Pointer.to(kernelOutput), deviceOutput, 3*Sizeof.FLOAT);
+            cuMemcpyDtoH(Pointer.to(finalOutput), deviceOutput, blocks*3*Sizeof.FLOAT);
 //            System.out.println("Output from the kernel : "+String.valueOf(kernelOutput[0][1]));
+        cuCtxSynchronize();
+        long t2 = System.currentTimeMillis();
 
-            cuCtxSynchronize();
-
-            return kernelOutput;
+        System.out.println("Done executing kernel!");
+        System.out.println("Time taken to execute kernel - "+(t2-t1));
+        return finalOutput;
     }
 
   }
@@ -778,6 +799,7 @@ public class ClosestPair {
         Pair closestPair =
             closestPairLocal(inPaths, new OperationsParams(context.getConfiguration()));
         final PrintStream ps = new PrintStream(fs.create(new Path(outPath, "finalResult")));
+        System.out.println("\n\nPrinting final Output - ");
         ps.println(closestPair.p1+"\t"+closestPair.p2);
         ps.close();
       } catch (InterruptedException | URISyntaxException e) {
@@ -915,15 +937,16 @@ public class ClosestPair {
     }
 
     LOG.info("Computing closest-pair for "+allPoints.length+" points");
-    Pair closestPair = closestPairInMemoryReducer(allPoints,
-        params.getInt(BruteForceThreshold, 100));
+    Pair closestPair = closestPairInMemory(allPoints,
+        params.getInt(BruteForceThreshold, 1000));
     return closestPair;
   }
 
   public static Job closestPair(Path[] inFiles, Path outPath, OperationsParams params)
           throws IOException, InterruptedException, ClassNotFoundException, URISyntaxException {
     if (OperationsParams.isLocal(params, inFiles)) {
-      closestPairLocal(inFiles, params);
+      Pair pair = closestPairLocal(inFiles, params);
+      System.out.println("Final answer - " + pair);
       return null;
     } else {
       return closestPairMapReduce(inFiles, outPath, params);

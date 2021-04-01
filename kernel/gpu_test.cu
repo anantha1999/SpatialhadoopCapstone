@@ -10,8 +10,11 @@ extern "C"
 //    int x;
 //}testStruct;
 
-__global__ void gpu(float** input, float** output, int* startPoints, int* endPoints){
+__global__ void gpu(float** input, float* output, int* startPoints, int* endPoints, float* distancePoints){
 	int block = blockIdx.x;
+	output[block*3] = startPoints[block];
+	output[block*3+1] = startPoints[block]+1;
+	output[block*3+2] = startPoints[block]+2;
 //	int i1 = blockIdx.y + startPoints[block];
 //	int i2 = blockIdx.z + startPoints[block];
 //	if(i2 > i1){
@@ -28,16 +31,17 @@ __global__ void gpu(float** input, float** output, int* startPoints, int* endPoi
 //	}
     for(int i1=startPoints[block];i1<endPoints[block];++i1){
         for(int i2=i1+1; i2<endPoints[block];++i2){
+
             float x_distance = powf(((float)input[i1][0] - (float)input[i2][0]),(float)2);
             float y_distance = powf(((float)input[i1][1] - (float)input[i2][1]),(float)2);
             float distance = sqrt(x_distance+y_distance);
 //            printf("distance calculated - %d\n",distance);
-            if(distance < output[block][2]){
-                output[block][0] = (float)i1;
-                output[block][1] = (float)i2;
-                output[block][2] = distance;
+            if(distance < output[block*3+2]){
+                output[block*3] = (float)i1;
+                output[block*3+1] = (float)i2;
+                output[block*3+2] = distance;
+                }
             }
         }
     }
-}
 
