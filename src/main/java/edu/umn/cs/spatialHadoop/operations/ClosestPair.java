@@ -97,7 +97,7 @@ public class ClosestPair {
    */
 
 
-  public static Pair closestPairInMemory(final Point[] points, int threshold) throws URISyntaxException {
+  public static Pair closestPairInMemory(final Point[] points, int threshold, float[] inp) throws URISyntaxException {
     // Sort points by increasing x-axis
 
     Arrays.sort(points);
@@ -184,33 +184,35 @@ public class ClosestPair {
 
     cuModuleGetFunction(function, module, "gpu");
     CUdeviceptr deviceInput = new CUdeviceptr();
-    cuMemAlloc(deviceInput, points.length * Sizeof.POINTER);
+    // cuMemAlloc(deviceInput, points.length * Sizeof.POINTER);
+    cuMemAlloc(deviceInput, inp.length*Sizeof.FLOAT);
+    cuMemcpyHtoD(deviceInput, Pointer.to(inp), inp.length*Sizeof.FLOAT);
+    // CUdeviceptr hostPointers[] = new CUdeviceptr[points.length];
+    
 
-    CUdeviceptr hostPointers[] = new CUdeviceptr[points.length];
+    // //--------------
+    //  ind = 0;
+    //  System.out.println("Transferring input from CPU to GPU");
+    // long t1 = System.currentTimeMillis();
+    // for (Point point : points) {
+    //   float hostWordData[] = new float[2];
 
+    //   hostWordData[0] = (float)point.x;
+    //   hostWordData[1] = (float)point.y;
+    //   hostPointers[ind] = new CUdeviceptr();
+    //   hostPointers[ind] = new CUdeviceptr();
+    //   cuMemAlloc(hostPointers[ind], 2 * Sizeof.FLOAT);
 
-    //--------------
-     ind = 0;
-     System.out.println("Transferring input from CPU to GPU");
-    long t1 = System.currentTimeMillis();
-    for (Point point : points) {
-      float hostWordData[] = new float[2];
-
-      hostWordData[0] = (float)point.x;
-      hostWordData[1] = (float)point.y;
-      hostPointers[ind] = new CUdeviceptr();
-      hostPointers[ind] = new CUdeviceptr();
-      cuMemAlloc(hostPointers[ind], 2 * Sizeof.FLOAT);
-
-      cuMemcpyHtoD(hostPointers[ind], Pointer.to(hostWordData),
-              2 * Sizeof.FLOAT);
-      ind++;
-    }
-    long t2 = System.currentTimeMillis();
-    System.out.println("Time taken by for loop that initializes input device pointers - "+(t2-t1));
-    long t3 = System.currentTimeMillis();
-    cuMemcpyHtoD(deviceInput,Pointer.to(hostPointers), points.length* Sizeof.POINTER);
-    System.out.println("Time taken for transferring input from CPU to GPU - "+(t3-t2));
+    //   cuMemcpyHtoD(hostPointers[ind], Pointer.to(hostWordData),
+    //           2 * Sizeof.FLOAT);
+    //   ind++;
+    // }
+    
+    // long t2 = System.currentTimeMillis();
+    // System.out.println("Time taken by for loop that initializes input device pointers - "+(t2-t1));
+    // long t3 = System.currentTimeMillis();
+    // cuMemcpyHtoD(deviceInput,Pointer.to(hostPointers), points.length* Sizeof.POINTER);
+    // System.out.println("Time taken for transferring input from CPU to GPU - "+(t3-t2));
     //LIKE I MENTIONED BEFORE INITIALIZING DEVICEINPUT HERE ITSELF AND PASSING IT AS PARAMETER SO THAT WE CAN AVOID INITIALIZING IT OVER AND OVER.
 
 //    while(blocksExecuted < blocks) {
@@ -605,10 +607,17 @@ public class ClosestPair {
 
 
       //--------------
-      int ind = 0;
+      
       for (Point point : values) {
-        float hostWordData[] = new float[2];
         points.add(point.clone());
+      }
+
+      float inp[] = new float[2*points.size()];
+      int ind = 0;
+      for(Point point : points){
+        inp[ind] = (float)point.x;
+        inp[ind+1] = (float)point.y;
+        ind += 2;
       }
 
       System.out.println("Length of the points array : " + String.valueOf(points.size()));
@@ -624,7 +633,7 @@ public class ClosestPair {
       Pair pair = null;
       try {
         pair = closestPairInMemory(points.toArray(new Point[points.size()]),
-            context.getConfiguration().getInt(BruteForceThreshold, 100));
+            context.getConfiguration().getInt(BruteForceThreshold, 100), inp);
         System.out.println("EXITED CLOSESTPAIRINMEMORY IN MAPPER");
       } catch (URISyntaxException e) {
         e.printStackTrace();
@@ -936,8 +945,8 @@ public class ClosestPair {
     }
 
     LOG.info("Computing closest-pair for "+allPoints.length+" points");
-    Pair closestPair = closestPairInMemory(allPoints,
-        params.getInt(BruteForceThreshold, 1000));
+    Pair closestPair = closestPairInMemoryReducer(allPoints,
+        params.getInt(BruteForceThreshold, 100));
     return closestPair;
   }
 
