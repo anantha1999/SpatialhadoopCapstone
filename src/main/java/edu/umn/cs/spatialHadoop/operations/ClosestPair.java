@@ -105,14 +105,14 @@ public class ClosestPair {
     float inp[] = new float[2*points.length];
     int ind = 0;
 
-    long t11 = System.currentTimeMillis();
+    // long t11 = System.currentTimeMillis();
     for(Point point : points){
       inp[ind] = (float)point.x;
       inp[ind+1] = (float)point.y;
       ind += 2;
     }
-    long t12 = System.currentTimeMillis();
-    System.out.println("Time taken to finish the for loop that initializes the input array to be sent to GPU - "+(t12-t11));
+    // long t12 = System.currentTimeMillis();
+    // System.out.println("Time taken to finish the for loop that initializes the input array to be sent to GPU - "+(t12-t11));
 
     class SubListComputation {
       int start, end;
@@ -126,7 +126,7 @@ public class ClosestPair {
     int start = 0;
 
     int blocks = 0;
-    long t1 = System.currentTimeMillis();
+    // long t1 = System.currentTimeMillis();
     while(start < points.length){
       ++blocks;
       int end;
@@ -136,7 +136,7 @@ public class ClosestPair {
         end = start + threshold;
       start = end;
     }
-    long t2 = System.currentTimeMillis();
+    // long t2 = System.currentTimeMillis();
     //HERE I AM GETTING THE NUMBER OF WHILE LOOPS THAT WILL BE EXECUTED AND INITIALLY I THOUGHT I COULD USE AS MANY BLOCKS AND HENCE NAMED THE VARIABLE THAT KEEPS COUNT AS BLOCKS. BUT TURNS OUT THE NUMBER OF ITERATIONS WILL BE GREATER THAN THE NUM OF BLOCKS THAT WE CAN ALLOCATE TO A GPU.
 
     int startPoints[] = new int[blocks];
@@ -145,7 +145,7 @@ public class ClosestPair {
 
     start = 0;
     ind = 0;
-    long t3 = System.currentTimeMillis();
+    // long t3 = System.currentTimeMillis();
     while(start < points.length){
       int end;
       if (start + (threshold * 3 / 2) > points.length)
@@ -158,10 +158,10 @@ public class ClosestPair {
       start = end;
       ++ind;
     }
-    long t4 = System.currentTimeMillis();
+    // long t4 = System.currentTimeMillis();
     //HERE I AM GETTING THE STARTING VALUES FOR EACH WHILE LOOP (WHICH WILL BE EXECUTED PARALLELY ACCROSS BLOCKS) AND STORING THEM AND THEY WILL BE LATER PASSED TO THE GPU.
     // System.out.println("Number of blocks = "+blocks);
-    int blocksExecuted = 0;
+    // int blocksExecuted = 0;
     URL url = ClosestPair.class.getClassLoader().getResource("gpu_test.ptx");
     String ptxFileName = url.getPath();
 
@@ -182,16 +182,16 @@ public class ClosestPair {
     CUdeviceptr deviceInput = new CUdeviceptr();
     // cuMemAlloc(deviceInput, points.length * Sizeof.POINTER);
     cuMemAlloc(deviceInput, inp.length*Sizeof.FLOAT);
-    long t5 = System.currentTimeMillis();
+    // long t5 = System.currentTimeMillis();
     cuMemcpyHtoD(deviceInput, Pointer.to(inp), inp.length*Sizeof.FLOAT);
-    long t6 = System.currentTimeMillis();
+    // long t6 = System.currentTimeMillis();
     // CUdeviceptr hostPointers[] = new CUdeviceptr[points.length];
       // System.out.println("calling kernel!");
       //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
     float cudaOutput[] = ClosestPairMap.executeKernel(blocks, deviceInput, function, startPoints, endPoints, distancePoints);
     ind = 0;
       //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
-      long t7 = System.currentTimeMillis();
+      // long t7 = System.currentTimeMillis();
       for(int i=0;i<blocks*3;i+=3) {
 //          System.out.println("Adding output to the list");
         SubListComputation closestPair = new SubListComputation();
@@ -204,7 +204,7 @@ public class ClosestPair {
         sublists.add(closestPair);
         ++ind;
       }
-      long t8 = System.currentTimeMillis();
+      // long t8 = System.currentTimeMillis();
       
     // System.out.println("Size of sublists - "+sublists.size());
 
@@ -296,12 +296,12 @@ public class ClosestPair {
       }
       sublists = newSublists;
     }
-    long t9 = System.currentTimeMillis();
-    System.out.println("Time taken to finish the first while loop that gets the number of blocks - "+(t2-t1));
-    System.out.println("Time taken to finish the second while loop loop that initializes startPoints and endPoints array - "+(t4-t3));
-    System.out.println("Time taken to transfer input from host to device - "+(t6-t5));
-    System.out.println("Time taken to finish the for loop that adds output values to the sublist - "+(t8-t7));
-    System.out.println("Time taken to finish the final while loop - "+(t9-t8));
+    // long t9 = System.currentTimeMillis();
+    // System.out.println("Time taken to finish the first while loop that gets the number of blocks - "+(t2-t1));
+    // System.out.println("Time taken to finish the second while loop loop that initializes startPoints and endPoints array - "+(t4-t3));
+    // System.out.println("Time taken to transfer input from host to device - "+(t6-t5));
+    // System.out.println("Time taken to finish the for loop that adds output values to the sublist - "+(t8-t7));
+    // System.out.println("Time taken to finish the final while loop - "+(t9-t8));
     Pair closestPair = new Pair();
     closestPair.p1 = points[sublists.get(0).p1];
     closestPair.p2 = points[sublists.get(0).p2];
@@ -628,10 +628,7 @@ public class ClosestPair {
       cuMemcpyHtoD(deviceEndPoints, Pointer.to(endPoints), blocks*Sizeof.INT);
       cuMemcpyHtoD(deviceDistancePoints, Pointer.to(distancePoints), blocks*Sizeof.FLOAT);
 
-        int lock[] = {0};
-        CUdeviceptr lockVar = new CUdeviceptr();
-        cuMemAlloc(lockVar, Sizeof.INT);
-        cuMemcpyHtoD(lockVar, Pointer.to(lock), Sizeof.INT);
+        
         Pointer kernelParams = Pointer.to(
                 Pointer.to(deviceInput),
                Pointer.to(deviceOutput),
@@ -640,9 +637,9 @@ public class ClosestPair {
                 Pointer.to(deviceDistancePoints)
             );
 
-        System.out.println();
-        System.out.println();
-        long t1 = System.currentTimeMillis();
+        // System.out.println();
+        // System.out.println();
+        // long t1 = System.currentTimeMillis();
 //        System.out.println("EXECUTING KERNEL FUNCTION...\n\n");
             cuLaunchKernel(function,
                 blocks, 1, 1,      // Grid dimension
@@ -653,10 +650,10 @@ public class ClosestPair {
             cuMemcpyDtoH(Pointer.to(finalOutput), deviceOutput, blocks*3*Sizeof.FLOAT);
 //            System.out.println("Output from the kernel : "+String.valueOf(kernelOutput[0][1]));
         cuCtxSynchronize();
-        long t2 = System.currentTimeMillis();
+        // long t2 = System.currentTimeMillis();
 
         // System.out.println("Done executing kernel!");
-        System.out.println("Time taken to execute kernel and transfer output from device to host- "+(t2-t1));
+        // System.out.println("Time taken to execute kernel and transfer output from device to host- "+(t2-t1));
         return finalOutput;
     }
 
