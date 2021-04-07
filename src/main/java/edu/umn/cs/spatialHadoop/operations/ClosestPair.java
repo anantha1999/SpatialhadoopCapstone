@@ -97,10 +97,22 @@ public class ClosestPair {
    */
 
 
-  public static Pair closestPairInMemory(final Point[] points, int threshold, float[] inp) throws URISyntaxException {
+  public static Pair closestPairInMemory(final Point[] points, int threshold) throws URISyntaxException {
     // Sort points by increasing x-axis
 
     Arrays.sort(points);
+
+    float inp[] = new float[2*points.length];
+    int ind = 0;
+
+    long t11 = System.currentTimeMillis();
+    for(Point point : points){
+      inp[ind] = (float)point.x;
+      inp[ind+1] = (float)point.y;
+      ind += 2;
+    }
+    long t12 = System.currentTimeMillis();
+    System.out.println("Time taken to finish the for loop that initializes the input array to be sent to GPU - "+(t12-t11));
 
     class SubListComputation {
       int start, end;
@@ -114,7 +126,7 @@ public class ClosestPair {
     int start = 0;
 
     int blocks = 0;
-
+    long t1 = System.currentTimeMillis();
     while(start < points.length){
       ++blocks;
       int end;
@@ -124,6 +136,7 @@ public class ClosestPair {
         end = start + threshold;
       start = end;
     }
+    long t2 = System.currentTimeMillis();
     //HERE I AM GETTING THE NUMBER OF WHILE LOOPS THAT WILL BE EXECUTED AND INITIALLY I THOUGHT I COULD USE AS MANY BLOCKS AND HENCE NAMED THE VARIABLE THAT KEEPS COUNT AS BLOCKS. BUT TURNS OUT THE NUMBER OF ITERATIONS WILL BE GREATER THAN THE NUM OF BLOCKS THAT WE CAN ALLOCATE TO A GPU.
 
     int startPoints[] = new int[blocks];
@@ -131,7 +144,8 @@ public class ClosestPair {
     float distancePoints[] = new float[blocks];
 
     start = 0;
-    int ind = 0;
+    ind = 0;
+    long t3 = System.currentTimeMillis();
     while(start < points.length){
       int end;
       if (start + (threshold * 3 / 2) > points.length)
@@ -140,31 +154,13 @@ public class ClosestPair {
         end = start + threshold;
       startPoints[ind] = start;
       endPoints[ind] = end;
-//      System.out.println("start points - "+startPoints[ind]);
       distancePoints[ind] = (float)points[start].distanceTo(points[start+1]);
-//      System.out.println(startPoints[ind] + " " + endPoints[ind] + " " + distancePoints[ind]);
       start = end;
       ++ind;
     }
-
+    long t4 = System.currentTimeMillis();
     //HERE I AM GETTING THE STARTING VALUES FOR EACH WHILE LOOP (WHICH WILL BE EXECUTED PARALLELY ACCROSS BLOCKS) AND STORING THEM AND THEY WILL BE LATER PASSED TO THE GPU.
-    System.out.println("Number of blocks = "+blocks);
-
-//    if(numBlocks <= 30000) {
-//      float cudaOutput[][] = ClosestPairMap.executeKernel(numBlocks, points, startPoints, endPoints, distancePoints);
-//      ind = 0;
-//      for (float[] out : cudaOutput) {
-//        SubListComputation closestPair = new SubListComputation();
-//        closestPair.start = startPoints[ind];
-//        closestPair.end = endPoints[ind];
-//        closestPair.p1 = (int) out[0];
-//        closestPair.p2 = (int) out[1];
-//        closestPair.distance = out[2];
-//        sublists.add(closestPair);
-//        ++ind;
-//      }
-//    }
-//    else{
+    // System.out.println("Number of blocks = "+blocks);
     int blocksExecuted = 0;
     URL url = ClosestPair.class.getClassLoader().getResource("gpu_test.ptx");
     String ptxFileName = url.getPath();
@@ -172,12 +168,12 @@ public class ClosestPair {
     //DOING ALL THIS HERE BECAUSE IF DONE INSIDE THE FUNCTION THEN IT KEEPS INITIALISING INPUT OVER AND OVER. INSTEAD INITIALIZING IT ONCE HERE SO THAT WE CAN AVOID EXTRA FOR LOOP
     //TODO: VARY THE NUMBER OF BLOCKS AND FIND OPTIMUM. AND ALSO SEE WHAT ELSE CAN BE DONE TO CAUSE A SPEED UP BECAUSE CURRENTLY THE WORKING IS SLOW.
     cuInit(0);
-    System.out.println("Initialised  cuda device!");
+    // System.out.println("Initialised  cuda device!");
     CUdevice device = new CUdevice();
     cuDeviceGet(device, 0);
     CUcontext cUcontext = new CUcontext();
     cuCtxCreate(cUcontext, 0, device);
-    System.out.println("Initialized context");
+    // System.out.println("Initialized context");
     CUmodule module = new CUmodule();
     cuModuleLoad(module, ptxFileName);
     CUfunction function = new CUfunction();
@@ -186,41 +182,16 @@ public class ClosestPair {
     CUdeviceptr deviceInput = new CUdeviceptr();
     // cuMemAlloc(deviceInput, points.length * Sizeof.POINTER);
     cuMemAlloc(deviceInput, inp.length*Sizeof.FLOAT);
+    long t5 = System.currentTimeMillis();
     cuMemcpyHtoD(deviceInput, Pointer.to(inp), inp.length*Sizeof.FLOAT);
+    long t6 = System.currentTimeMillis();
     // CUdeviceptr hostPointers[] = new CUdeviceptr[points.length];
-    
-
-    // //--------------
-    //  ind = 0;
-    //  System.out.println("Transferring input from CPU to GPU");
-    // long t1 = System.currentTimeMillis();
-    // for (Point point : points) {
-    //   float hostWordData[] = new float[2];
-
-    //   hostWordData[0] = (float)point.x;
-    //   hostWordData[1] = (float)point.y;
-    //   hostPointers[ind] = new CUdeviceptr();
-    //   hostPointers[ind] = new CUdeviceptr();
-    //   cuMemAlloc(hostPointers[ind], 2 * Sizeof.FLOAT);
-
-    //   cuMemcpyHtoD(hostPointers[ind], Pointer.to(hostWordData),
-    //           2 * Sizeof.FLOAT);
-    //   ind++;
-    // }
-    
-    // long t2 = System.currentTimeMillis();
-    // System.out.println("Time taken by for loop that initializes input device pointers - "+(t2-t1));
-    // long t3 = System.currentTimeMillis();
-    // cuMemcpyHtoD(deviceInput,Pointer.to(hostPointers), points.length* Sizeof.POINTER);
-    // System.out.println("Time taken for transferring input from CPU to GPU - "+(t3-t2));
-    //LIKE I MENTIONED BEFORE INITIALIZING DEVICEINPUT HERE ITSELF AND PASSING IT AS PARAMETER SO THAT WE CAN AVOID INITIALIZING IT OVER AND OVER.
-
-//    while(blocksExecuted < blocks) {
-      System.out.println("calling kernel!");
+      // System.out.println("calling kernel!");
       //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
     float cudaOutput[] = ClosestPairMap.executeKernel(blocks, deviceInput, function, startPoints, endPoints, distancePoints);
     ind = 0;
       //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
+      long t7 = System.currentTimeMillis();
       for(int i=0;i<blocks*3;i+=3) {
 //          System.out.println("Adding output to the list");
         SubListComputation closestPair = new SubListComputation();
@@ -233,56 +204,9 @@ public class ClosestPair {
         sublists.add(closestPair);
         ++ind;
       }
-//      blocksExecuted += 1000;
-//    }
-
-//    System.out.println("calling kernel!");
-//      //EXECUTING THE REMAINING NUMBER OF INPU POINTS FINALLY.
-//      float cudaOutput[][] = ClosestPairMap.executeKernel(blocks - blocksExecuted, deviceInput, function, Arrays.copyOfRange(startPoints, blocksExecuted, blocks), Arrays.copyOfRange(endPoints, blocksExecuted, blocks), Arrays.copyOfRange(distancePoints, blocksExecuted, blocks));
-//    ind = 0;
-//    //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
-//    for (float[] out : cudaOutput) {
-////          System.out.println("Adding output to the list");
-//      SubListComputation closestPair = new SubListComputation();
-//      closestPair.start = startPoints[ind];
-//      closestPair.end = endPoints[ind];
-//      closestPair.p1 = (int) out[0];
-//      closestPair.p2 = (int) out[1];
-//      closestPair.distance = out[2];
-//      sublists.add(closestPair);
-//      ++ind;
-//    }
-
-    //TODO: THE CODE IS SLOW FOR SOME REASON SO MAY HAVE TO LOOK FOR CHANGES OR TRY CONVERTING THE ENTIRE FUNCTION TO CUDA RATHER THAN PART OF IT. MAYBE THAT WILL ACTUALLY SPEED IT UP.
-//    }
-
-//    while (start < points.length) {
-//      ClosestPairMap.count++;
-//      int end;
-//      if (start + (threshold * 3 / 2) > points.length)
-//        end = points.length;
-//      else
-//        end = start + threshold;
-//      SubListComputation closestPair = new SubListComputation();
-//      closestPair.start = start;
-//      closestPair.end = end;
-//      closestPair.p1 = start;
-//      closestPair.p2 = start+1;
-//      closestPair.distance = points[start].distanceTo(points[start+1]);
-//        for (int i1 = start; i1 < end; i1++) {
-//          for (int i2 = i1 + 1; i2 < end; i2++) {
-//            double distance = points[i1].distanceTo(points[i2]);
-//            if (distance < closestPair.distance) {
-//              closestPair.p1 = i1;
-//              closestPair.p2 = i2;
-//              closestPair.distance = distance;
-//            }
-//          }
-//        }
-//
-//      sublists.add(closestPair);
-//      start = end;
-//    }
+      long t8 = System.currentTimeMillis();
+      
+    // System.out.println("Size of sublists - "+sublists.size());
 
     // Merge each pair of adjacent sublists
     while (sublists.size() > 1) {
@@ -372,7 +296,12 @@ public class ClosestPair {
       }
       sublists = newSublists;
     }
-
+    long t9 = System.currentTimeMillis();
+    System.out.println("Time taken to finish the first while loop that gets the number of blocks - "+(t2-t1));
+    System.out.println("Time taken to finish the second while loop loop that initializes startPoints and endPoints array - "+(t4-t3));
+    System.out.println("Time taken to transfer input from host to device - "+(t6-t5));
+    System.out.println("Time taken to finish the for loop that adds output values to the sublist - "+(t8-t7));
+    System.out.println("Time taken to finish the final while loop - "+(t9-t8));
     Pair closestPair = new Pair();
     closestPair.p1 = points[sublists.get(0).p1];
     closestPair.p2 = points[sublists.get(0).p2];
@@ -396,7 +325,7 @@ public class ClosestPair {
     // Compute the closest pair for each sublist below the threshold
     int start = 0;
 
-
+    long t1 = System.currentTimeMillis();
     while (start < points.length) {
       ClosestPairMap.count++;
       int end;
@@ -424,7 +353,8 @@ public class ClosestPair {
       sublists.add(closestPair);
       start = end;
     }
-
+    long t2 = System.currentTimeMillis();
+    // System.out.println("Size of sublists - "+sublists.size());
     // Merge each pair of adjacent sublists
     while (sublists.size() > 1) {
       List<SubListComputation> newSublists = new ArrayList<SubListComputation>();
@@ -513,7 +443,9 @@ public class ClosestPair {
       }
       sublists = newSublists;
     }
-
+    long t3 = System.currentTimeMillis();
+    System.out.println("Time taken for first while loop - " + (t2-t1));
+    System.out.println("Time taken for second while loop - " + (t3-t2));
     Pair closestPair = new Pair();
     closestPair.p1 = points[sublists.get(0).p1];
     closestPair.p2 = points[sublists.get(0).p2];
@@ -612,15 +544,8 @@ public class ClosestPair {
         points.add(point.clone());
       }
 
-      float inp[] = new float[2*points.size()];
-      int ind = 0;
-      for(Point point : points){
-        inp[ind] = (float)point.x;
-        inp[ind+1] = (float)point.y;
-        ind += 2;
-      }
 
-      System.out.println("Length of the points array : " + String.valueOf(points.size()));
+      // System.out.println("Length of the points array : " + String.valueOf(points.size()));
 
 //      LOG.info("\n\nCalling GPU Kernel Function!\n\n");
 //      System.out.println("\n\nCalling GPU Kernel Function!\n\n");
@@ -633,7 +558,7 @@ public class ClosestPair {
       Pair pair = null;
       try {
         pair = closestPairInMemory(points.toArray(new Point[points.size()]),
-            context.getConfiguration().getInt(BruteForceThreshold, 100), inp);
+            context.getConfiguration().getInt(BruteForceThreshold, 100));
         System.out.println("EXITED CLOSESTPAIRINMEMORY IN MAPPER");
       } catch (URISyntaxException e) {
         e.printStackTrace();
@@ -730,8 +655,8 @@ public class ClosestPair {
         cuCtxSynchronize();
         long t2 = System.currentTimeMillis();
 
-        System.out.println("Done executing kernel!");
-        System.out.println("Time taken to execute kernel - "+(t2-t1));
+        // System.out.println("Done executing kernel!");
+        System.out.println("Time taken to execute kernel and transfer output from device to host- "+(t2-t1));
         return finalOutput;
     }
 
