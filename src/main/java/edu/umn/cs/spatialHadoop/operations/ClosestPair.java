@@ -1,11 +1,11 @@
 /***********************************************************************
-* Copyright (c) 2015 by Regents of the University of Minnesota.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*
-*************************************************************************/
+ * Copyright (c) 2015 by Regents of the University of Minnesota.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Apache License, Version 2.0 which
+ * accompanies this distribution and is available at
+ * http://www.opensource.org/licenses/apache2.0.php.
+ *
+ *************************************************************************/
 package edu.umn.cs.spatialHadoop.operations;
 
 import edu.umn.cs.spatialHadoop.OperationsParams;
@@ -85,7 +85,7 @@ public class ClosestPair {
     @Override
     public String toString() {
       return String.format("Pair (%s, %s) - Distance(%f)", p1.toString(),
-          p2.toString(), p1.distanceTo(p2));
+              p2.toString(), p1.distanceTo(p2));
     }
   }
 
@@ -104,13 +104,13 @@ public class ClosestPair {
 
     float inp[] = new float[2*points.length];
     int ind = 0;
-
     // long t11 = System.currentTimeMillis();
     for(Point point : points){
       inp[ind] = (float)point.x;
       inp[ind+1] = (float)point.y;
       ind += 2;
     }
+    
     // long t12 = System.currentTimeMillis();
     // System.out.println("Time taken to finish the for loop that initializes the input array to be sent to GPU - "+(t12-t11));
 
@@ -160,7 +160,6 @@ public class ClosestPair {
     }
     // long t4 = System.currentTimeMillis();
     //HERE I AM GETTING THE STARTING VALUES FOR EACH WHILE LOOP (WHICH WILL BE EXECUTED PARALLELY ACCROSS BLOCKS) AND STORING THEM AND THEY WILL BE LATER PASSED TO THE GPU.
-    // System.out.println("Number of blocks = "+blocks);
     // int blocksExecuted = 0;
     URL url = ClosestPair.class.getClassLoader().getResource("gpu_test.ptx");
     String ptxFileName = url.getPath();
@@ -186,26 +185,28 @@ public class ClosestPair {
     cuMemcpyHtoD(deviceInput, Pointer.to(inp), inp.length*Sizeof.FLOAT);
     // long t6 = System.currentTimeMillis();
     // CUdeviceptr hostPointers[] = new CUdeviceptr[points.length];
-      // System.out.println("calling kernel!");
-      //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
+    // System.out.println("calling kernel!");
+    //HERE I AM EXECUTING 1000 BLOCKS AT A TIME. WE WILL HAVE TO VARY IT AND CHECK IF THERE IS ANY IMPROVEMENT. MAY ALSO HAVE TO ADD SOME CONDITIONS TO MAKE SURE THE CORRECT NUMBER OF BLOCKS ARE GETTING EXECUTED EVERYTIME TOO.
     float cudaOutput[] = ClosestPairMap.executeKernel(blocks, deviceInput, function, startPoints, endPoints, distancePoints);
     ind = 0;
-      //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
-      // long t7 = System.currentTimeMillis();
-      for(int i=0;i<blocks*3;i+=3) {
+    //HERE OUTPUT FROM THE FUNCTION THAT EXECUTES THE CUDA FUNCTION IS 2D BECAUSE IT CONTAINS THE OUTPUT FROM EACH BLOCK WHICH AGAIN WAS EXECUTING WHATEVER WAS THERE IN EACH WHILE LOOP
+    // long t7 = System.currentTimeMillis();
+    for(int i=0;i<blocks*3;i+=3) {
 //          System.out.println("Adding output to the list");
-        SubListComputation closestPair = new SubListComputation();
-        closestPair.start = startPoints[ind];
-        closestPair.end = endPoints[ind];
+      SubListComputation closestPair = new SubListComputation();
+      closestPair.start = startPoints[ind];
+      closestPair.end = endPoints[ind];
 //        System.out.println(cudaOutput[i+0]+" "+cudaOutput[i+1] + " "+cudaOutput[i+2]);
-        closestPair.p1 = (int) cudaOutput[i+0];
-        closestPair.p2 = (int) cudaOutput[i+1];
-        closestPair.distance = cudaOutput[i+2];
-        sublists.add(closestPair);
-        ++ind;
-      }
-      // long t8 = System.currentTimeMillis();
-      
+      closestPair.p1 = (int) cudaOutput[i+0];
+      closestPair.p2 = (int) cudaOutput[i+1];
+      closestPair.distance = cudaOutput[i+2];
+      sublists.add(closestPair);
+      ++ind;
+    }
+
+    cuCtxDestroy(cUcontext);
+    // long t8 = System.currentTimeMillis();
+
     // System.out.println("Size of sublists - "+sublists.size());
 
     // Merge each pair of adjacent sublists
@@ -325,7 +326,7 @@ public class ClosestPair {
     // Compute the closest pair for each sublist below the threshold
     int start = 0;
 
-    long t1 = System.currentTimeMillis();
+    // long t1 = System.currentTimeMillis();
     while (start < points.length) {
       ClosestPairMap.count++;
       int end;
@@ -339,21 +340,21 @@ public class ClosestPair {
       closestPair.p1 = start;
       closestPair.p2 = start+1;
       closestPair.distance = points[start].distanceTo(points[start+1]);
-        for (int i1 = start; i1 < end; i1++) {
-          for (int i2 = i1 + 1; i2 < end; i2++) {
-            double distance = points[i1].distanceTo(points[i2]);
-            if (distance < closestPair.distance) {
-              closestPair.p1 = i1;
-              closestPair.p2 = i2;
-              closestPair.distance = distance;
-            }
+      for (int i1 = start; i1 < end; i1++) {
+        for (int i2 = i1 + 1; i2 < end; i2++) {
+          double distance = points[i1].distanceTo(points[i2]);
+          if (distance < closestPair.distance) {
+            closestPair.p1 = i1;
+            closestPair.p2 = i2;
+            closestPair.distance = distance;
           }
         }
+      }
 
       sublists.add(closestPair);
       start = end;
     }
-    long t2 = System.currentTimeMillis();
+    // long t2 = System.currentTimeMillis();
     // System.out.println("Size of sublists - "+sublists.size());
     // Merge each pair of adjacent sublists
     while (sublists.size() > 1) {
@@ -443,9 +444,9 @@ public class ClosestPair {
       }
       sublists = newSublists;
     }
-    long t3 = System.currentTimeMillis();
-    System.out.println("Time taken for first while loop - " + (t2-t1));
-    System.out.println("Time taken for second while loop - " + (t3-t2));
+    // long t3 = System.currentTimeMillis();
+    // System.out.println("Time taken for first while loop - " + (t2-t1));
+    //System.out.println("Time taken for second while loop - " + (t3-t2));
     Pair closestPair = new Pair();
     closestPair.p1 = points[sublists.get(0).p1];
     closestPair.p2 = points[sublists.get(0).p2];
@@ -510,7 +511,7 @@ public class ClosestPair {
    *
    */
   public static class ClosestPairMap
-      extends Mapper<Rectangle, Iterable<Point>, IntWritable, Point> {
+          extends Mapper<Rectangle, Iterable<Point>, IntWritable, Point> {
 
     /**Boundaries of columns to split partitions*/
     private double[] columnBoundaries;
@@ -525,13 +526,13 @@ public class ClosestPair {
 
     @Override
     protected void setup(Context context) throws IOException,
-        InterruptedException {
+            InterruptedException {
       this.columnBoundaries = SpatialSite.getReduceSpace(context.getConfiguration());
     }
 
     @Override
     protected void map(Rectangle key, Iterable<Point> values, Context context)
-        throws IOException, InterruptedException {
+            throws IOException, InterruptedException {
       IntWritable column = new IntWritable();
       List<Point> points = new ArrayList<Point>();
 
@@ -539,7 +540,7 @@ public class ClosestPair {
 
 
       //--------------
-      
+
       for (Point point : values) {
         points.add(point.clone());
       }
@@ -558,8 +559,8 @@ public class ClosestPair {
       Pair pair = null;
       try {
         pair = closestPairInMemory(points.toArray(new Point[points.size()]),
-            context.getConfiguration().getInt(BruteForceThreshold, 100));
-        System.out.println("EXITED CLOSESTPAIRINMEMORY IN MAPPER");
+                context.getConfiguration().getInt(BruteForceThreshold, 100));
+
       } catch (URISyntaxException e) {
         e.printStackTrace();
       }
@@ -628,33 +629,33 @@ public class ClosestPair {
       cuMemcpyHtoD(deviceEndPoints, Pointer.to(endPoints), blocks*Sizeof.INT);
       cuMemcpyHtoD(deviceDistancePoints, Pointer.to(distancePoints), blocks*Sizeof.FLOAT);
 
-        
-        Pointer kernelParams = Pointer.to(
-                Pointer.to(deviceInput),
-               Pointer.to(deviceOutput),
-                Pointer.to(deviceStartPoints),
-                Pointer.to(deviceEndPoints),
-                Pointer.to(deviceDistancePoints)
-            );
 
-        // System.out.println();
-        // System.out.println();
-        // long t1 = System.currentTimeMillis();
+      Pointer kernelParams = Pointer.to(
+              Pointer.to(deviceInput),
+              Pointer.to(deviceOutput),
+              Pointer.to(deviceStartPoints),
+              Pointer.to(deviceEndPoints),
+              Pointer.to(deviceDistancePoints)
+      );
+
+      // System.out.println();
+      // System.out.println();
+      // long t1 = System.currentTimeMillis();
 //        System.out.println("EXECUTING KERNEL FUNCTION...\n\n");
-            cuLaunchKernel(function,
-                blocks, 1, 1,      // Grid dimension
-                1, 1, 1,      // Block dimension
-                0, null,               // Shared memory size and stream
-                kernelParams, null // Kernel- and extra parameters
-        );
-            cuMemcpyDtoH(Pointer.to(finalOutput), deviceOutput, blocks*3*Sizeof.FLOAT);
+      cuLaunchKernel(function,
+              blocks, 1, 1,      // Grid dimension
+              1, 1, 1,      // Block dimension
+              0, null,               // Shared memory size and stream
+              kernelParams, null // Kernel- and extra parameters
+      );
+      cuMemcpyDtoH(Pointer.to(finalOutput), deviceOutput, blocks*3*Sizeof.FLOAT);
 //            System.out.println("Output from the kernel : "+String.valueOf(kernelOutput[0][1]));
-        cuCtxSynchronize();
-        // long t2 = System.currentTimeMillis();
+      cuCtxSynchronize();
+      // long t2 = System.currentTimeMillis();
 
-        // System.out.println("Done executing kernel!");
-        // System.out.println("Time taken to execute kernel and transfer output from device to host- "+(t2-t1));
-        return finalOutput;
+      // System.out.println("Done executing kernel!");
+      // System.out.println("Time taken to execute kernel and transfer output from device to host- "+(t2-t1));
+      return finalOutput;
     }
 
   }
@@ -665,15 +666,15 @@ public class ClosestPair {
    *
    */
   public static class ClosestPairReduce
-      extends Reducer<IntWritable, Point, NullWritable, Point> {
+          extends Reducer<IntWritable, Point, NullWritable, Point> {
 
     @Override
     protected void reduce(IntWritable dummyColumn, Iterable<Point> values,
-        Context context) throws IOException, InterruptedException {
+                          Context context) throws IOException, InterruptedException {
 
       List<Point> points = new ArrayList<Point>();
       Rectangle mbr = new Rectangle(Double.MAX_VALUE, Double.MAX_VALUE,
-          -Double.MAX_VALUE, -Double.MAX_VALUE);
+              -Double.MAX_VALUE, -Double.MAX_VALUE);
       for (Point point : values) {
         points.add(point.clone());
         mbr.expand(point);
@@ -682,7 +683,7 @@ public class ClosestPair {
       Pair pair = null;
       try {
         pair = closestPairInMemoryReducer(points.toArray(new Point[points.size()]),
-            context.getConfiguration().getInt(BruteForceThreshold, 100));
+                context.getConfiguration().getInt(BruteForceThreshold, 100));
       } catch (URISyntaxException e) {
         e.printStackTrace();
       }
@@ -710,7 +711,7 @@ public class ClosestPair {
     private Path outPath;
 
     public ClosestPairOutputCommitter(Path outputPath, TaskAttemptContext task)
-        throws IOException {
+            throws IOException {
       super(outputPath, task);
       outPath = outputPath;
     }
@@ -727,7 +728,7 @@ public class ClosestPair {
 
       try {
         Pair closestPair =
-            closestPairLocal(inPaths, new OperationsParams(context.getConfiguration()));
+                closestPairLocal(inPaths, new OperationsParams(context.getConfiguration()));
         final PrintStream ps = new PrintStream(fs.create(new Path(outPath, "finalResult")));
         System.out.println("\n\nPrinting final Output - ");
         ps.println(closestPair.p1+"\t"+closestPair.p2);
@@ -746,28 +747,33 @@ public class ClosestPair {
   public static class ClosestPairOutputFormat extends TextOutputFormat3<NullWritable, Point> {
     @Override
     public synchronized OutputCommitter getOutputCommitter(
-        TaskAttemptContext context) throws IOException {
+            TaskAttemptContext context) throws IOException {
       Path jobOutputPath = getOutputPath(context);
       return new ClosestPairOutputCommitter(jobOutputPath, context);
     }
   }
 
   public static Job closestPairMapReduce(Path[] inPaths, Path outPath,
-      OperationsParams params)
+                                         OperationsParams params)
           throws IOException, InterruptedException, ClassNotFoundException {
     Job job = new Job(params, "Closest Pair");
     job.setJarByClass(ClosestPair.class);
     Shape shape = params.getShape("shape");
 
+    cuInit(0);
+    // System.out.println("Initialised  cuda device!");
+    CUdevice device = new CUdevice();
+    cuDeviceGet(device, 0);
+    CUcontext cUcontext = new CUcontext();
     // Set map and reduce
     job.setMapperClass(ClosestPairMap.class);
     job.setMapOutputKeyClass(IntWritable.class);
     job.setMapOutputValueClass(shape.getClass());
     job.setReducerClass(ClosestPairReduce.class);
 
-    System.out.println("Adding classpath");
+    // System.out.println("Adding classpath");
     job.addFileToClassPath(new Path("/user/user/gpu_test.ptx"));
-    System.out.println("Added gpu kernel in test folder to classpath");
+    // System.out.println("Added gpu kernel in test folder to classpath");
     job.addFileToClassPath(new Path("/user/user/jcuda-10.1.0.jar"));
     job.addFileToClassPath(new Path("/user/user/jcuda-natives-10.1.0-linux-x86_64.jar"));
     // Set input and output
@@ -806,7 +812,7 @@ public class ClosestPair {
     // 1- Split the input path/file to get splits that can be processed
     // independently
     final SpatialInputFormat3<Rectangle, Point> inputFormat =
-        new SpatialInputFormat3<Rectangle, Point>();
+            new SpatialInputFormat3<Rectangle, Point>();
     Job job = Job.getInstance(params);
     SpatialInputFormat3.setInputPaths(job, inPaths);
     final List<InputSplit> splits = inputFormat.getSplits(job);
@@ -823,7 +829,7 @@ public class ClosestPair {
             List<Point> points = new ArrayList<Point>();
             FileSplit fsplit = (FileSplit) splits.get(i);
             final RecordReader<Rectangle, Iterable<Point>> reader =
-                inputFormat.createRecordReader(fsplit, null);
+                    inputFormat.createRecordReader(fsplit, null);
             if (reader instanceof SpatialRecordReader3) {
               ((SpatialRecordReader3)reader).initialize(fsplit, params);
             } else if (reader instanceof RTreeRecordReader3) {
@@ -868,7 +874,7 @@ public class ClosestPair {
 
     LOG.info("Computing closest-pair for "+allPoints.length+" points");
     Pair closestPair = closestPairInMemoryReducer(allPoints,
-        params.getInt(BruteForceThreshold, 100));
+            params.getInt(BruteForceThreshold, 100));
     return closestPair;
   }
 
