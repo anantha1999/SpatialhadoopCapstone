@@ -558,7 +558,7 @@ public class ClosestPair {
 //      }
       Pair pair = null;
       try {
-        pair = closestPairInMemory(points.toArray(new Point[points.size()]),
+        pair = closestPairInMemoryReducer(points.toArray(new Point[points.size()]),
                 context.getConfiguration().getInt(BruteForceThreshold, 100));
 
       } catch (URISyntaxException e) {
@@ -880,13 +880,9 @@ public class ClosestPair {
 
   public static Job closestPair(Path[] inFiles, Path outPath, OperationsParams params)
           throws IOException, InterruptedException, ClassNotFoundException, URISyntaxException {
-    if (OperationsParams.isLocal(params, inFiles)) {
       Pair pair = closestPairLocal(inFiles, params);
       System.out.println("Final answer - " + pair);
       return null;
-    } else {
-      return closestPairMapReduce(inFiles, outPath, params);
-    }
   }
 
   private static void printUsage() {
