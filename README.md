@@ -1,6 +1,6 @@
 # Acceleration of Computational Geometry (CG) Operations in Spatial Hadoop using GPU #
 
-**Changes have been made in the official Spatial Hadoop repository to integrate GPU with the Closest Pair operation as part of a Capstone project**
+**Changes have been made in the official Spatial Hadoop repository to integrate GPU with the Closest Pair operation as part of our Capstone project**
 
 Team members - 
 1) Anantharam R U  
@@ -32,6 +32,7 @@ iii) Now execute the closestpair operation by running the below command:
 vii) Check the output using the below command :
 >    **hdfs dfs -cat \<outputFile>/finalResult**
     
+
 
 Official repository of SpatialHadoop - https://github.com/aseldawy/spatialhadoop2
 
