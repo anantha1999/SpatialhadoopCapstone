@@ -17,14 +17,15 @@ Download jcuda-10.1.0.jar and store it in the hdfs home folder.
 Do the following steps to run the  Closest Pair operation - 
 
 i) Build Jar after making changes in the file using the below command:
->    **./createJar.sh**\n
+>    **./createJar.sh**
+
    This command compiles and creates a jar which is located in the target folder.
 
 ii) Compile the cuda file into ptx format after making changes and put it the hdfs home directory using the below command:
 >    **./compileGPUFile.sh**
 
 iii) Now execute the closestpair operation by running the below command:
->    **hadoop jar target/spatialhadoop-2.4.1-SNAPSHOT-uber.jar closestpair \<inputFile> \<outputFile> shape:point -overwrite **
+>    **hadoop jar target/spatialhadoop-2.4.1-SNAPSHOT-uber.jar closestpair \<inputFile\> \<outputFile\> shape:point -overwrite **
 
 vii) Check the output using the below command :
 >    **hdfs dfs -cat \<outputFile>/finalResult**
