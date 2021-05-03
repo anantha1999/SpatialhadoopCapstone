@@ -25,7 +25,7 @@ ii) Compile the cuda file into ptx format after making changes and put it the hd
 >    **./compileGPUFile.sh**
 
 iii) Now execute the closestpair operation by running the below command:
->    **hadoop jar target/spatialhadoop-2.4.1-SNAPSHOT-uber.jar closestpair <inputFile\> <outputFile\> shape:point -overwrite **
+>    **hadoop jar target/spatialhadoop-2.4.1-SNAPSHOT-uber.jar closestpair** **<inputFile\>** **<outputFile\>** **shape:point** **-overwrite** 
 
 vii) Check the output using the below command :
 >    **hdfs dfs -cat \<outputFile>/finalResult**
