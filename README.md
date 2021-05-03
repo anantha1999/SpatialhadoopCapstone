@@ -14,7 +14,7 @@ Required :
 
 Download jcuda-10.1.0.jar and store it in the hdfs home folder.
 
-Do the following steps to run the  Closest Pair operation - 
+Steps to run the  Closest Pair operation - 
 
 i) Build Jar after making changes in the file using the below command:
 >    **./createJar.sh**
