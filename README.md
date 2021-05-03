@@ -1,4 +1,4 @@
-#Acceleration of Computational Geometry (CG) Operations in Spatial Hadoop using GPU#
+# Acceleration of Computational Geometry (CG) Operations in Spatial Hadoop using GPU #
 
 **Changes have been made in the official Spatial Hadoop repository to integrate GPU with the Closest Pair operation as part of a Capstone project**
 
