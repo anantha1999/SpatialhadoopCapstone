@@ -1,3 +1,15 @@
+**Changes have been made in this repo to integrate GPU as part of College project**
+
+Team members - 
+1) Anantharam R U  
+2) Kirthika Gurumurthy
+3) Nishanth Shastry
+4) Shashank Prasad
+
+Official repository of the SpatialHadoop - https://github.com/aseldawy/spatialhadoop2
+
+Official documentation of the repo starts below - 
+
 SpatialHadoop
 =============
 
